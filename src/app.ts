@@ -1,9 +1,10 @@
-import http, { IncomingMessage, ServerResponse } from 'http';
+import express from 'express';
+import mongoose from 'mongoose';
 
-const server = http.createServer((req: IncomingMessage, res: ServerResponse) => {
-  console.log('Hello World!');
-  // console.log(req);
-  // console.log(res);
-});
+const { PORT = 3000 } = process.env;
 
-server.listen(3000);
+const app = express();
+
+mongoose.connect('mongodb://localhost:27017/mestodb');
+
+app.listen(PORT);
