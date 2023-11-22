@@ -7,7 +7,7 @@ export const getCards = (req: Request, res: Response) => {
     .catch((error) => res.status(500).send({ message: `Произошла ошибка на стороне сервера: ${error}` }));
 };
 
-export const createCard = (req: any, res: Response) => {
+export const createCard = (req: Request, res: Response) => {
   const { name, link } = req.body;
   const { _id } = req.user;
   const createdAt = new Date();
@@ -24,5 +24,23 @@ export const deleteCard = (req: Request, res: Response) => {
 
   Card.findByIdAndDelete(cardId)
     .then((card) => res.send(card))
-    .catch((error) => res.status(404).send({ message: `Пост не найден: ${error}` }));
+    .catch(() => res.status(404).send({ message: 'Пост не найден' }));
+};
+
+export const likeCard = (req: Request, res: Response) => {
+  const { _id } = req.user;
+  const { cardId } = req.params;
+
+  Card.findByIdAndUpdate(cardId, { $addToSet: { likes: _id } }, { new: true })
+    .then((card) => res.send(card))
+    .catch((error) => res.status(500).send({ message: `Произошла ошибка на стороне сервера: ${error}` }));
+};
+
+export const dislikeCard = (req: Request, res: Response) => {
+  const { _id } = req.user;
+  const { cardId } = req.params;
+
+  Card.findByIdAndUpdate(cardId, { $pull: { likes: _id } }, { new: true })
+    .then((card) => res.send(card))
+    .catch((error) => res.status(500).send({ message: `Произошла ошибка на стороне сервера: ${error}` }));
 };

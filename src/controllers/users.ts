@@ -26,3 +26,21 @@ export const findUser = (req: Request, res: Response) => {
     })
     .catch((error) => res.status(500).send({ message: `Произошла ошибка на стороне сервера: ${error}` }));
 };
+
+export const updateUserInfo = (req: Request, res: Response) => {
+  const { name, about } = req.body;
+  const { _id } = req.user;
+
+  User.findByIdAndUpdate(_id, { name, about }, { runValidators: true, new: true })
+    .then((user) => res.send(user))
+    .catch(() => res.status(400).send({ message: 'Форма неккоректно заполнена' }));
+};
+
+export const updateUserAvatar = (req: Request, res: Response) => {
+  const { avatar } = req.body;
+  const { _id } = req.user;
+
+  User.findByIdAndUpdate(_id, { avatar }, { runValidators: true, new: true })
+    .then((user) => res.send(user))
+    .catch(() => res.status(400).send({ message: 'Форма неккоректно заполнена' }));
+};

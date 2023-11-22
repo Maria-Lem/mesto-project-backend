@@ -1,4 +1,4 @@
-import express, { NextFunction, Response } from 'express';
+import express, { NextFunction, Response, Request } from 'express';
 import mongoose from 'mongoose';
 import userRouter from './routes/users';
 import cardsRouter from './routes/cards';
@@ -14,7 +14,7 @@ app.use(express.json());
 
 // app.post('/users', createUser);
 
-app.use((req: any, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   req.user = {
     _id: '655ccff7436bf87019f1b806',
   };
