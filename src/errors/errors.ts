@@ -1,5 +1,3 @@
-export const ERR_INCORRECT_ID = 'Передан некорректный id';
-
 export const ERR_INCORRECT_DATA = {
   code: 400,
   message: 'Переданы некорректные данные',

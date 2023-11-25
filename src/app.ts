@@ -1,6 +1,7 @@
 import express, { NextFunction, Response, Request } from 'express';
 import mongoose from 'mongoose';
 import router from './routes';
+import { ERR_NOT_FOUND } from './errors/errors';
 
 const { PORT = 3000 } = process.env;
 
@@ -19,5 +20,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 app.use(router);
+
+app.get('*', (req: Request, res: Response) => {
+  res.status(ERR_NOT_FOUND.code).send({ message: ERR_NOT_FOUND.message });
+});
 
 app.listen(PORT, () => {});
