@@ -41,6 +41,8 @@ export const deleteCard = (req: Request, res: Response) => {
     .catch((error) => {
       if (error instanceof Error && error.message === 'DocumentNotFoundError') {
         res.status(ERR_NOT_FOUND.code).send({ message: ERR_NOT_FOUND.message });
+      } else if (error instanceof Error && error.name === 'CastError') {
+        res.status(ERR_INCORRECT_DATA.code).send({ message: ERR_INCORRECT_DATA.message });
       }
       res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message });
     });
