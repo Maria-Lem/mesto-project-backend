@@ -3,6 +3,11 @@ export const ERR_INCORRECT_DATA = {
   message: 'Переданы некорректные данные',
 };
 
+export const ERR_UNAUTHORIZED = {
+  code: 401,
+  message: 'Необходима авторизация',
+};
+
 export const ERR_NOT_FOUND = {
   code: 404,
   message: 'Запрашиваемая информация не найдена',

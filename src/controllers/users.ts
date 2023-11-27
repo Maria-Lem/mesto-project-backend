@@ -1,34 +1,94 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 
 import { UpdateUser } from '../utils';
+import { SECRET_JWT } from '../utils/variables';
 
 import User from '../models/user';
+
 import {
-  ERR_INCORRECT_DATA,
-  ERR_NOT_FOUND,
-  ERR_SERVER_FAILED,
-} from '../errors/errors';
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+  UnauthorizedError,
+} from '../errors';
 
-export const createUser = (req: Request, res: Response) => {
-  const { name, about, avatar } = req.body;
+export const createUser = (req: Request, res: Response, next: NextFunction) => {
+  const {
+    name,
+    about,
+    avatar,
+    email,
+    password,
+  } = req.body;
 
-  return User.create({ name, about, avatar })
-    .then((user) => res.send({ data: user }))
+  return bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
+    .then((user) => {
+      res.status(201).send({
+        name: user.name,
+        about: user.about,
+        avatar: user.avatar,
+        email: user.email,
+        _id: user._id,
+      });
+    })
     .catch((error) => {
       if (error instanceof Error && error.name === 'ValidationError') {
-        res.status(ERR_INCORRECT_DATA.code).send({ message: ERR_INCORRECT_DATA.message });
+        return next(new BadRequestError('Переданы некорректные данные'));
       }
-      res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message });
+      if (error.code === 11000) {
+        return next(new ConflictError('Пользователь с таким Email уже существует'));
+      }
+      return next(error);
     });
 };
 
-export const findUsers = (req: Request, res: Response) => {
-  User.find({})
-    .then((users) => res.send(users))
-    .catch(() => res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message }));
+export const login = (req: Request, res: Response, next: NextFunction) => {
+  const { email, password } = req.body;
+
+  return User.findUserByCredentials(email, password)
+    .then((user) => {
+      const token = jwt.sign({ _id: user._id }, SECRET_JWT, { expiresIn: '7d' });
+
+      res
+        .cookie('jwt', token, {
+          httpOnly: true,
+          sameSite: true,
+          maxAge: 3600000 * 24 * 7,
+        })
+        .send({ token });
+    })
+    .catch(() => next(new UnauthorizedError('Необходима авторизация')));
 };
 
-export const findUser = (req: Request, res: Response) => {
+export const getUsers = (req: Request, res: Response, next: NextFunction) => {
+  User.find({})
+    .then((users) => res.send(users))
+    .catch((error) => next(error));
+};
+
+export const getUser = (req: Request, res: Response, next: NextFunction) => {
+  const { _id } = req.params;
+
+  User.findById({ _id })
+    .orFail(new Error('DocumentNotFoundError'))
+    .then((user) => res.send(user))
+    .catch((error) => {
+      if (error instanceof Error && error.message === 'DocumentNotFoundError') {
+        return next(new NotFoundError('Пользователь не найден'));
+      }
+      if (error instanceof Error && error.name === 'CastError') {
+        return next(new BadRequestError('Переданы некорректные данные'));
+      }
+      return next(error);
+    });
+};
+
+export const getUserCurrent = (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.user;
 
   User.findById({ _id })
@@ -36,40 +96,36 @@ export const findUser = (req: Request, res: Response) => {
     .then((user) => res.send(user))
     .catch((error) => {
       if (error instanceof Error && error.message === 'DocumentNotFoundError') {
-        res.status(ERR_NOT_FOUND.code).send({ message: ERR_NOT_FOUND.message });
-      } else if (error instanceof Error && error.name === 'CastError') {
-        res.status(ERR_INCORRECT_DATA.code).send({ message: ERR_INCORRECT_DATA.message });
+        return next(new NotFoundError('Пользователь не найден'));
       }
-      res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message });
+      return next(error);
     });
 };
 
-export const updateUserInfo = (req: Request, res: Response) => {
+export const updateUserInfo = (req: Request, res: Response, next: NextFunction) => {
   const { name, about } = req.body;
   const { _id } = req.user;
 
-  // User.findByIdAndUpdate(_id, { name, about }, { runValidators: true, new: true })
   UpdateUser(_id, { name, about })
     .then((user) => res.send(user))
     .catch((error) => {
       if (error instanceof Error && error.name === 'ValidationError') {
-        res.status(ERR_INCORRECT_DATA.code).send({ message: ERR_INCORRECT_DATA.message });
+        return next(new BadRequestError('Переданы некорректные данные'));
       }
-      res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message });
+      return next(error);
     });
 };
 
-export const updateUserAvatar = (req: Request, res: Response) => {
+export const updateUserAvatar = (req: Request, res: Response, next: NextFunction) => {
   const { avatar } = req.body;
   const { _id } = req.user;
 
-  // User.findByIdAndUpdate(_id, { avatar }, { runValidators: true, new: true })
   UpdateUser(_id, { avatar })
     .then((user) => res.send(user))
     .catch((error) => {
       if (error instanceof Error && error.name === 'ValidationError') {
-        res.status(ERR_INCORRECT_DATA.code).send({ message: ERR_INCORRECT_DATA.message });
+        return next(new BadRequestError('Переданы некорректные данные'));
       }
-      res.status(ERR_SERVER_FAILED.code).send({ message: ERR_SERVER_FAILED.message });
+      return next(error);
     });
 };
