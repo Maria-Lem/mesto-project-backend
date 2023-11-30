@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
-import { UpdateUser } from '../utils';
+import { UpdateUser, getUserById } from '../utils';
 import { SECRET_JWT } from '../utils/variables';
 
 import User from '../models/user';
@@ -10,8 +11,6 @@ import User from '../models/user';
 import {
   BadRequestError,
   ConflictError,
-  NotFoundError,
-  UnauthorizedError,
 } from '../errors';
 
 export const createUser = (req: Request, res: Response, next: NextFunction) => {
@@ -37,7 +36,7 @@ export const createUser = (req: Request, res: Response, next: NextFunction) => {
       });
     })
     .catch((error) => {
-      if (error instanceof Error && error.name === 'ValidationError') {
+      if (error instanceof mongoose.Error.ValidationError) {
         return next(new BadRequestError('Переданы некорректные данные'));
       }
       if (error.code === 11000) {
@@ -60,9 +59,9 @@ export const login = (req: Request, res: Response, next: NextFunction) => {
           sameSite: true,
           maxAge: 3600000 * 24 * 7,
         })
-        .send({ token });
+        .send({ message: 'Успешный вход' });
     })
-    .catch(() => next(new UnauthorizedError('Необходима авторизация')));
+    .catch((error) => next(error));
 };
 
 export const getUsers = (req: Request, res: Response, next: NextFunction) => {
@@ -74,58 +73,25 @@ export const getUsers = (req: Request, res: Response, next: NextFunction) => {
 export const getUser = (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.params;
 
-  User.findById({ _id })
-    .orFail(new Error('DocumentNotFoundError'))
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof Error && error.message === 'DocumentNotFoundError') {
-        return next(new NotFoundError('Пользователь не найден'));
-      }
-      if (error instanceof Error && error.name === 'CastError') {
-        return next(new BadRequestError('Переданы некорректные данные'));
-      }
-      return next(error);
-    });
+  getUserById(_id, req, res, next);
 };
 
 export const getUserCurrent = (req: Request, res: Response, next: NextFunction) => {
   const { _id } = req.user;
 
-  User.findById({ _id })
-    .orFail(new Error('DocumentNotFoundError'))
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof Error && error.message === 'DocumentNotFoundError') {
-        return next(new NotFoundError('Пользователь не найден'));
-      }
-      return next(error);
-    });
+  getUserById(_id, req, res, next);
 };
 
 export const updateUserInfo = (req: Request, res: Response, next: NextFunction) => {
   const { name, about } = req.body;
   const { _id } = req.user;
 
-  UpdateUser(_id, { name, about })
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof Error && error.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы некорректные данные'));
-      }
-      return next(error);
-    });
+  UpdateUser(_id, { name, about }, req, res, next);
 };
 
 export const updateUserAvatar = (req: Request, res: Response, next: NextFunction) => {
   const { avatar } = req.body;
   const { _id } = req.user;
 
-  UpdateUser(_id, { avatar })
-    .then((user) => res.send(user))
-    .catch((error) => {
-      if (error instanceof Error && error.name === 'ValidationError') {
-        return next(new BadRequestError('Переданы некорректные данные'));
-      }
-      return next(error);
-    });
+  UpdateUser(_id, { avatar }, req, res, next);
 };

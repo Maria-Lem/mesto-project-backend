@@ -26,13 +26,13 @@ export const userIdValidator = celebrate({
 
 export const userInfoValidator = celebrate({
   body: Joi.object().keys({
-    name: Joi.string().min(2).max(30),
-    about: Joi.string().min(2).max(200),
+    name: Joi.string().required().min(2).max(30),
+    about: Joi.string().required().min(2).max(200),
   }),
 });
 
 export const userAvatarValidator = celebrate({
   body: Joi.object().keys({
-    avatar: Joi.string().pattern(urlRegex),
+    avatar: Joi.string().required().pattern(urlRegex),
   }),
 });

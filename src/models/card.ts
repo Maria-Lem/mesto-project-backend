@@ -1,4 +1,5 @@
 import { Schema, model, Types } from 'mongoose';
+import isURL from 'validator/lib/isURL';
 
 interface ICard {
   name: string;
@@ -18,6 +19,9 @@ const cardSchema = new Schema<ICard>({
   link: {
     type: String,
     required: true,
+    validate: {
+      validator: (url: string) => isURL(url),
+    },
   },
   owner: {
     type: Schema.Types.ObjectId,
